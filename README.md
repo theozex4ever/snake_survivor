@@ -60,7 +60,7 @@ The window is 1100 × 720 pixels and targets 60 FPS. Poppins is used when instal
 | Return to the menu after game over | R |
 | Quit | Close the window |
 
-Shooting is automatic. Directly reversing your movement direction is blocked.
+Shooting is automatic. Directly reversing your movement direction is blocked. Up to two turns are buffered, so quick combos such as up-then-left register on consecutive moves.
 
 ## How to play
 
@@ -112,10 +112,25 @@ snake_survivor/
 
 `Game` coordinates the entities, systems, and UI through menu, speed selection, playing, pause, wave-clear, and upgrade-selection states. The snake moves on a discrete grid; enemies and bullets use continuous pixel positions and circular collision checks. Most tuning values live in `constants.py`, while wave scaling lives in `systems/wave_manager.py` and upgrade effects in `Game._apply_upgrade()`.
 
+## Playtest bot
+
+`python tools/playtest.py --runs 30 --speed Normal --profile careful` plays full headless runs and prints death causes, waves reached, and upgrade picks. Options: `--profile greedy|careful`, `--upgrades random|first|prefer:<key>`, `--json <path>`.
+
+## Bug reports
+
+Bugs found during review, with root causes, fixes, and regression tests, are in [`docs/bugs/`](docs/bugs/README.md).
+
+## Testing
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Tests run headless (SDL dummy drivers) and cover the snake, wave and upgrade systems, combat, state flow, persistence, and a render smoke test of every screen.
+
 ## Current limitations
 
-- High scores are saved to `highscore.txt` beside the source when you press **R after game over**. Closing the window does not save a new record. The file is local and excluded from Git.
-- Moving into the tail's current cell counts as self-collision, even on a move where the tail would otherwise leave that cell.
-- A piercing bullet can hit the same enemy again on later frames; distinct targets are not tracked.
-- Food placement retries random cells until one is free, so filling the entire grid is not currently handled.
-- There is no automated test suite or configured linter. A headless smoke test checks startup and rendering but does not replace interactive playtesting.
+- Hitting a wall or your own body is instant death regardless of hearts.
+- Filling the entire grid is not handled: `random_empty_cell` raises `ValueError` when no cell is free.
+- There is no configured linter; the tests do not replace interactive playtesting.

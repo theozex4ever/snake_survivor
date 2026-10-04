@@ -10,13 +10,16 @@ from constants import (
 from utils import grid_to_pixel, cell_center
 
 
+MAX_QUEUED_TURNS = 2
+
+
 class Snake:
     def __init__(self) -> None:
         cx = GRID_WIDTH // 2
         cy = GRID_HEIGHT // 2
         self.segments: List[Tuple[int, int]] = [(cx - i, cy) for i in range(INITIAL_SNAKE_LENGTH)]
         self.direction = (1, 0)
-        self.next_direction = (1, 0)
+        self.direction_queue: List[Tuple[int, int]] = []
         self.grow_pending = 0
         self.alive = True
         self.hp = STARTING_PLAYER_HP
@@ -33,23 +36,32 @@ class Snake:
         return cell_center(self.head)
 
     def set_direction(self, direction: Tuple[int, int]) -> None:
-        dx, dy = direction
-        cdx, cdy = self.direction
-        if (dx, dy) == (-cdx, -cdy):
+        """Queue a turn, validated against the last queued direction.
+
+        Buffering up to MAX_QUEUED_TURNS lets quick combos like up-then-left
+        resolve over consecutive moves instead of dropping the first input.
+        """
+        last = self.direction_queue[-1] if self.direction_queue else self.direction
+        if direction == last or direction == (-last[0], -last[1]):
             return
-        self.next_direction = direction
+        if len(self.direction_queue) >= MAX_QUEUED_TURNS:
+            return
+        self.direction_queue.append(direction)
 
     def move(self) -> None:
         if not self.alive:
             return
-        self.direction = self.next_direction
+        if self.direction_queue:
+            self.direction = self.direction_queue.pop(0)
         hx, hy = self.head
         dx, dy = self.direction
         new_head = (hx + dx, hy + dy)
         if not (0 <= new_head[0] < GRID_WIDTH and 0 <= new_head[1] < GRID_HEIGHT):
             self.alive = False
             return
-        if new_head in self.segments:
+        # The tail cell is vacated this move unless the snake is growing.
+        body = self.segments if self.grow_pending > 0 else self.segments[:-1]
+        if new_head in body:
             self.alive = False
             return
         self.segments.insert(0, new_head)
