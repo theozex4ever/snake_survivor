@@ -21,7 +21,7 @@ python tools/playtest.py --runs 60 --speed Normal --profile careful --upgrades p
 
 ## Expected vs actual
 - Expected: the six upgrades lead to roughly comparable progress, with trade-offs.
-- Actual: mean wave reached over 60 runs: Big Bullet 14.35, Faster Fire 10.0, random picks 8.85. The other four are between 7.15 and 8.33.
+- Actual: mean wave reached over 60 runs: Big Bullet 14.35, Faster Fire 10.0, random picks 8.73. The other four are between 7.20 and 8.33.
 
 ## Player impact
 Players who notice it stop reading the cards. Runs with Big Bullet become long and high-variance (SD 6.9). One run reached wave 21.

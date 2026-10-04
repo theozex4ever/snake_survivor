@@ -14,14 +14,14 @@
 Piercing Shot, Swift Snake, Thick Skin and Extra Heart are offered like the strong upgrades, but taking them every time does not get a run further than picking at random.
 
 ## Expected vs actual
-Mean wave over 60 runs per policy, against a random-pick control at 8.85:
+Mean wave over 60 runs per policy, against a random-pick control at 8.73 (control and Piercing Shot re-run on the fixed build):
 
 | Upgrade | Mean wave |
 | --- | --- |
 | Extra Heart | 8.33 |
 | Thick Skin | 7.58 |
 | Swift Snake | 7.17 |
-| Piercing Shot | 7.15 |
+| Piercing Shot | 7.20 |
 
 All four are below the control. The control includes strong upgrades, so the comparison is not "worse than nothing", but none of them reaches even the mean of a random pick.
 
@@ -35,7 +35,7 @@ Four of the six upgrades in the pool are weak picks, so most upgrade screens off
 - Extra Heart is one hit out of a run that already ends after about 6 (see GP-006).
 
 ## Caveat
-Piercing Shot was measured after the fix in [GP-003](GP-003-piercing-rehits-enemy.md). Before it, it would have been worse.
+Piercing Shot was re-measured on the build with both [GP-003](GP-003-piercing-rehits-enemy.md) and [TECH-005](../technical/TECH-005-piercing-hit-id-reuse.md) fixed (7.15 before the TECH-005 fix, 7.20 after). The other three upgrades were measured before those fixes, which do not touch them.
 
 ## Verification
 Re-run the preference experiment for each upgrade after rebalancing, using the commands in the baseline report.
