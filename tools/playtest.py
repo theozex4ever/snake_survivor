@@ -1,7 +1,6 @@
 """Headless bot playtester.
 
-Plays full runs of the real `Game` at a fixed 60 FPS timestep with no window
-or audio, then reports how runs end and how waves/upgrades behave. Intended
+Plays full runs of the real `Run` at a fixed 60 FPS timestep, then reports how runs end and how waves/upgrades behave. Intended
 to surface balance and fairness problems that unit tests cannot.
 
     python tools/playtest.py --runs 30 --speed Normal --profile careful
@@ -14,14 +13,10 @@ import statistics
 import sys
 from collections import Counter, deque
 
-os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import pygame  # noqa: E402
-
-import game as game_module  # noqa: E402
 from constants import GRID_HEIGHT, GRID_WIDTH, SPEED_OPTIONS, CELL_SIZE  # noqa: E402
+from run import FoodEaten, Run  # noqa: E402
 
 DT = 1 / 60
 DIRS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
@@ -32,11 +27,11 @@ def in_bounds(c):
     return 0 <= c[0] < GRID_WIDTH and 0 <= c[1] < GRID_HEIGHT
 
 
-def danger_cells(game, radius_px):
+def danger_cells(run, radius_px):
     """Grid cells within radius_px of a living enemy."""
     cells = set()
     r = int(radius_px // CELL_SIZE) + 1
-    for e in game.enemies:
+    for e in run.enemies:
         cx, cy = int(e.pos.x // CELL_SIZE), int(e.pos.y // CELL_SIZE)
         for x in range(cx - r, cx + r + 1):
             for y in range(cy - r, cy + r + 1):
@@ -63,17 +58,17 @@ def bfs_first_step(start, goal, blocked):
     return None
 
 
-def choose_direction(game, profile):
-    snake = game.snake
+def choose_direction(run, profile):
+    snake = run.snake
     head = snake.head
     body = set(snake.segments[:-1])
     cur = snake.direction
     reverse = (-cur[0], -cur[1])
     blocked_sets = [body]
     if profile == "careful":
-        blocked_sets.insert(0, body | danger_cells(game, 70))
+        blocked_sets.insert(0, body | danger_cells(run, 70))
     for blocked in blocked_sets:
-        step = bfs_first_step(head, game.food, blocked - {head})
+        step = bfs_first_step(head, run.food, blocked - {head})
         if step and step != reverse:
             return step
     # No path: take any safe move, preferring the one with most open neighbours.
@@ -88,8 +83,8 @@ def choose_direction(game, profile):
     return best
 
 
-def death_cause(game, hp_before):
-    s = game.snake
+def death_cause(run, hp_before):
+    s = run.snake
     if s.hp <= 0 and s.hp < hp_before:
         return "enemy"
     hx, hy = s.head
@@ -97,17 +92,16 @@ def death_cause(game, hp_before):
     return "wall" if not in_bounds((hx + dx, hy + dy)) else "self"
 
 
-def advance(game):
+def advance(run):
     """Run one frame; return (hit, ate) as 0/1 counts for HP loss and food pickup."""
-    hp_before, food_before = game.snake.hp, game.food
-    game.update(DT)
-    return int(game.snake.hp < hp_before), int(game.food != food_before)
+    hp_before = run.snake.hp
+    events = run.step(DT)
+    return int(run.snake.hp < hp_before), sum(isinstance(e, FoodEaten) for e in events)
 
 
-def play_run(game, speed_index, profile, upgrade_policy, rng):
-    game.reset()
-    game.speed_index = speed_index
-    game._confirm_speed()
+def play_run(speed_index, profile, upgrade_policy, seed):
+    run = Run(SPEED_OPTIONS[speed_index][1], rng=random.Random(seed))
+    rng = random.Random(f"upgrade-policy-{seed}")
     t = 0.0
     upgrades = []
     hits = 0
@@ -115,8 +109,8 @@ def play_run(game, speed_index, profile, upgrade_policy, rng):
     foods = 0
     last_wave_start = 0.0
     while t < MAX_SIM_SECONDS:
-        if game.state == "upgrade_pick":
-            offers = game.offered_upgrades
+        if run.phase == "choosing_upgrade":
+            offers = run.offered_upgrades
             if upgrade_policy == "first":
                 key = offers[0]["key"]
             elif upgrade_policy.startswith("prefer:"):
@@ -125,27 +119,27 @@ def play_run(game, speed_index, profile, upgrade_policy, rng):
             else:
                 key = rng.choice(offers)["key"]
             upgrades.append(key)
-            wave_times[game.wave_mgr.wave] = t - last_wave_start
+            wave_times[run.wave] = t - last_wave_start
             last_wave_start = t
-            game._apply_upgrade(key)
+            run.pick_upgrade(key)
             continue
-        if game.state == "playing" and game.snake.alive and game.move_timer + DT >= game.move_interval:
-            d = choose_direction(game, profile)
+        # Decide once per move, just before it happens.
+        if run.time_to_next_move <= DT and not run.snake.direction_queue:
+            d = choose_direction(run, profile)
             if d:
-                game.snake.direction_queue.clear()
-                game.snake.set_direction(d)
-        hp_before = game.snake.hp
-        hit, ate = advance(game)
+                run.steer(d)
+        hp_before = run.snake.hp
+        hit, ate = advance(run)
         t += DT
         hits += hit
         foods += ate
-        if not game.snake.alive:
-            return dict(cause=death_cause(game, hp_before), wave=game.wave_mgr.wave, score=game.score,
+        if run.phase == "over":
+            return dict(cause=death_cause(run, hp_before), wave=run.wave, score=run.score,
                         seconds=round(t, 1), upgrades=upgrades, hits=hits, foods=foods,
-                        wave_times=wave_times, length=len(game.snake.segments))
-    return dict(cause="survived", wave=game.wave_mgr.wave, score=game.score, seconds=round(t, 1),
+                        wave_times=wave_times, length=len(run.snake.segments))
+    return dict(cause="survived", wave=run.wave, score=run.score, seconds=round(t, 1),
                 upgrades=upgrades, hits=hits, foods=foods, wave_times=wave_times,
-                length=len(game.snake.segments))
+                length=len(run.snake.segments))
 
 
 def summarize(results):
@@ -178,23 +172,17 @@ def main():
     ap.add_argument("--json", help="write raw results to this path")
     args = ap.parse_args()
 
-    # Keep the playtest from touching the real high score file.
-    game_module.HIGH_SCORE_FILE = os.path.join(os.environ.get("TMPDIR", "/tmp"), "playtest_highscore.txt")
-    g = game_module.Game()
-    g.sound_mgr.play = lambda name: None
     idx = [n for n, _ in SPEED_OPTIONS].index(args.speed)
 
     results = []
     for i in range(args.runs):
-        random.seed(args.seed * 1000 + i)
-        results.append(play_run(g, idx, args.profile, args.upgrades, random.Random(args.seed * 1000 + i)))
+        results.append(play_run(idx, args.profile, args.upgrades, args.seed * 1000 + i))
     summary = summarize(results)
     summary.update(speed=args.speed, profile=args.profile, upgrades=args.upgrades, seed=args.seed)
     print(json.dumps(summary, indent=2))
     if args.json:
         with open(args.json, "w") as f:
             json.dump({"summary": summary, "runs": results}, f, indent=1)
-    pygame.quit()
 
 
 if __name__ == "__main__":

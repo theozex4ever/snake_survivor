@@ -1,3 +1,5 @@
+import random
+
 import pygame
 import pytest
 
@@ -38,60 +40,64 @@ def test_random_empty_cell_full_grid_raises():
 
 # --- wave manager ----------------------------------------------------------
 
-def test_wave_spawns_four_then_completes():
-    wm = WaveManager()
-    spawns = 0
+def spawn_wave(wm):
+    """Run the spawn clock until the wave has spawned everything; return the enemies."""
+    enemies = []
     for _ in range(100):
-        if wm.update(ENEMY_SPAWN_GAP, living_count=0) == "spawn":
-            spawns += 1
-    assert spawns == 4
-    assert wm.update(0.0, living_count=0) == "wave_complete"
+        enemy, _ = wm.update(ENEMY_SPAWN_GAP, living_count=len(enemies))
+        if enemy is not None:
+            enemies.append(enemy)
+    return enemies
+
+
+def test_wave_spawns_four_then_completes():
+    wm = WaveManager(random.Random(0))
+    assert len(spawn_wave(wm)) == 4
+    assert wm.update(0.0, living_count=0) == (None, True)
 
 
 def test_wave_not_complete_while_enemies_alive():
-    wm = WaveManager()
-    wm.enemies_spawned_in_wave = wm.enemies_to_spawn
-    assert wm.update(0.1, living_count=2) == ""
+    wm = WaveManager(random.Random(0))
+    spawn_wave(wm)
+    assert wm.update(0.1, living_count=2) == (None, False)
 
 
 def test_advance_scales_enemy_count_and_hp():
-    wm = WaveManager()
+    wm = WaveManager(random.Random(0))
+    assert {e.max_hp for e in spawn_wave(wm)} == {BASE_ENEMY_HP}
     wm.advance()
     assert wm.wave == 2
-    assert wm.enemies_to_spawn == 3 + 2 * 2
-    assert wm.enemies_spawned_in_wave == 0
-    assert wm.enemy_hp() == BASE_ENEMY_HP
+    wave_two = spawn_wave(wm)
+    assert len(wave_two) == 3 + 2 * 2
+    assert {e.max_hp for e in wave_two} == {BASE_ENEMY_HP}
     wm.advance()
-    assert wm.enemy_hp() == BASE_ENEMY_HP + 1
+    assert {e.max_hp for e in spawn_wave(wm)} == {BASE_ENEMY_HP + 1}
 
 
 def test_enemy_speed_rises_per_wave():
-    wm = WaveManager()
-    first = [wm.enemy_speed() for _ in range(50)]
-    wm.wave = 6
-    later = [wm.enemy_speed() for _ in range(50)]
+    wm = WaveManager(random.Random(0))
+    first = [e.speed for e in spawn_wave(wm)]
+    for _ in range(5):
+        wm.advance()
+    later = [e.speed for e in spawn_wave(wm)]
     assert min(later) > max(first)
 
 
 def test_spawn_positions_are_offscreen():
-    wm = WaveManager()
-    for _ in range(100):
-        p = wm.random_spawn_pos()
-        assert p.x < 0 or p.x > SCREEN_WIDTH or p.y < 0 or p.y > SCREEN_HEIGHT
-
-
-def test_reset_restores_wave_one():
-    wm = WaveManager()
-    wm.advance()
-    wm.reset()
-    assert (wm.wave, wm.enemies_to_spawn) == (1, 4)
+    wm = WaveManager(random.Random(0))
+    for _ in range(25):
+        for e in spawn_wave(wm):
+            p = e.pos
+            assert p.x < 0 or p.x > SCREEN_WIDTH or p.y < 0 or p.y > SCREEN_HEIGHT
+        wm.advance()
 
 
 # --- upgrades --------------------------------------------------------------
 
 def test_roll_offers_three_distinct_upgrades():
+    rng = random.Random(0)
     for _ in range(50):
-        offers = roll()
+        offers = roll(rng=rng)
         assert len(offers) == 3
         assert len({o["key"] for o in offers}) == 3
 
@@ -107,6 +113,15 @@ def test_enemy_moves_toward_target():
     e = Enemy(pos=pygame.Vector2(0, 0), speed=100, max_hp=2, hp=2)
     e.update(0.5, pygame.Vector2(100, 0))
     assert e.pos == pygame.Vector2(50, 0)
+
+
+def test_enemy_uids_are_unique_across_removed_enemies():
+    uids = set()
+    for _ in range(1000):
+        e = Enemy(pos=pygame.Vector2(), speed=0, max_hp=1, hp=1)
+        assert e.uid not in uids
+        uids.add(e.uid)
+        del e
 
 
 def test_enemy_take_damage_reports_death():
