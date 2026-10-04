@@ -13,6 +13,8 @@ Bugs found in Snake Survivor, split by the kind of QA that catches them. Each ha
 
 A bug goes in the track of its *symptom*. If one root cause shows up as both, file one report per symptom and cross-link them.
 
+**Review-found bugs:** TECH-005 to TECH-008 were found in review of PR #2 and are defects in the fixes made for earlier reports. They are recorded because the first round of tests missed them.
+
 **Honesty note:** GP-001 to GP-004 and all technical bugs were found by code review and confirmed with tests. GP-005 to GP-007 were found by the headless bot in `tools/playtest.py`, which is a simulation, not a human. See the [playtest baseline](playtests/2026-10-04-baseline.md) for method, limits, and raw numbers. None has been found by hands-on human play yet. Reports found that way should set `Found by: Playtest (human)` and include the build tested.
 
 **Method (technical and GP-001 to GP-004):** read the code, then wrote tests. All new tests were run against the original commit (`3b375eb`) before the fixes, so the "Failing test" column is evidence that the bug existed. Tests that merely depend on new internals are not counted.
@@ -37,6 +39,10 @@ A bug goes in the track of its *symptom*. If one root cause shows up as both, fi
 | [TECH-002](technical/TECH-002-high-score-lost-on-window-close.md) | High score lost when closing the window | Medium | Persistence | Fixed | `test_quit_saves_high_score`, `test_wall_death_saves_high_score` |
 | [TECH-003](technical/TECH-003-food-placement-hang.md) | Food placement loops forever on a full grid | Low | Utils | Fixed | `test_random_empty_cell_full_grid_raises` (hangs) |
 | [TECH-004](technical/TECH-004-frame-spike-skips-simulation.md) | Frame-time spikes skip moves and collisions | Low | Main loop | Fixed | Not covered by an automated test |
+| [TECH-005](technical/TECH-005-piercing-hit-id-reuse.md) | Piercing bullets track enemies by recyclable `id()` | Medium | Combat | Fixed | Found in PR review of the GP-003 fix |
+| [TECH-006](technical/TECH-006-game-over-fires-per-contact.md) | Game-over handling fires once per overlapping enemy | Medium | Game flow | Fixed | Found in PR review of the TECH-001 fix |
+| [TECH-007](technical/TECH-007-score-changes-after-death-save.md) | Score keeps changing after the death save | Medium | Persistence | Fixed | Found in PR review of the TECH-002 fix |
+| [TECH-008](technical/TECH-008-playtest-bot-miscounts.md) | Playtest bot miscounted hits and food | Low | Tooling | Fixed | Found in PR review |
 
 **Severity:** High = wrong outcome in normal play. Medium = noticeably unfair or data loss. Low = edge case or polish.
 

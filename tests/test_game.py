@@ -72,10 +72,9 @@ def test_steering_keys(game):
 
 
 def test_mute_toggle(game):
-    muted = game.sound_mgr.muted if hasattr(game.sound_mgr, "muted") else None
+    before = game.sound_mgr.is_muted
     press(game, pygame.K_m)
-    if muted is not None:
-        assert game.sound_mgr.muted != muted
+    assert game.sound_mgr.is_muted != before
 
 
 # --- food & scoring --------------------------------------------------------
@@ -278,3 +277,47 @@ def test_every_state_renders(game):
     game.snake.alive = False
     game.state = "playing"
     game.draw()
+
+
+# --- regressions from PR review --------------------------------------------
+
+def test_enemy_uids_are_unique_across_removed_enemies():
+    uids = set()
+    for _ in range(1000):
+        e = Enemy(pos=pygame.Vector2(), speed=0, max_hp=1, hp=1)
+        assert e.uid not in uids
+        uids.add(e.uid)
+        del e
+
+
+def test_piercing_bullet_still_hits_new_enemy_after_previous_one_dies(game):
+    first = enemy_at(game, (100, 100), hp=1)
+    bullet = Bullet(pos=pygame.Vector2(100, 100), vel=pygame.Vector2(), piercing=3)
+    game.bullets.append(bullet)
+    game.update(0.001)
+    assert first not in game.enemies
+    del first  # frees the old object so id() could be recycled
+    second = enemy_at(game, (100, 100), hp=1)
+    game.update(0.001)
+    assert second.hp == 0 or second not in game.enemies
+    assert bullet.piercing == 1
+
+
+def test_game_over_fires_once_with_simultaneous_lethal_contacts(game):
+    plays = []
+    game.sound_mgr.play = plays.append
+    game.snake.hp = 1
+    for _ in range(3):
+        enemy_at(game, game.snake.head_center())
+    game.update(0.001)
+    assert plays.count("game_over") == 1
+
+
+def test_movement_death_freezes_frame_so_saved_score_is_final(game):
+    game.score = 40
+    game.snake.segments = [(GRID_WIDTH - 1, 3), (GRID_WIDTH - 2, 3)]
+    enemy_at(game, (100, 100), hp=1)
+    game.bullets.append(Bullet(pos=pygame.Vector2(100, 100), vel=pygame.Vector2()))
+    game.update(game.move_interval)
+    assert not game.snake.alive
+    assert game.score == game._high_score == 40

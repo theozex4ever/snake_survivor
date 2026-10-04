@@ -15,7 +15,7 @@ Health only goes down. There is no way to recover it, so a run is a countdown th
 
 ## Expected vs actual
 - Expected: skill in steering, positioning, and upgrade choice changes how long a run lasts.
-- Actual: 172 of 240 bot runs ended after exactly 5 or 6 enemy hits. Mean hits by Extra Heart count: 0 hearts 4.94, 1 heart 6.0, 2 hearts 6.92, 3 hearts 8.0. Starting speed barely moved the median wave (5 to 8 for all eight speed/profile combinations). Careful play gained about 2 waves over greedy play.
+- Actual: 171 of 240 bot runs ended after exactly 5 or 6 hits. Among runs that ended from enemy damage, hits were exactly 5 + the number of Extra Hearts taken (0 hearts 5.0, 1 heart 6.0, 2 hearts 7.0, 3 hearts 8.0). Starting speed barely moved the median wave (5 to 8 for all eight speed/profile combinations). Careful play gained about 2 waves over greedy play.
 
 ## Player impact
 Dodging well only delays the countdown a little. Late waves feel inevitable rather than earned, and the Extra Heart upgrade is a flat "+1 hit".

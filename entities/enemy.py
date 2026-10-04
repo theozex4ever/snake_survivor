@@ -1,9 +1,12 @@
-from dataclasses import dataclass
+import itertools
+from dataclasses import dataclass, field
 from math import sin
 
 import pygame
 
 from constants import ENEMY_COLOR, ENEMY_OUTLINE, HP_BAR_BG, HP_BAR_FILL
+
+_next_uid = itertools.count(1)
 
 
 @dataclass
@@ -14,6 +17,8 @@ class Enemy:
     hp: int
     radius: int = 13
     alive: bool = True
+    # Unique for the process lifetime, unlike id(), which Python may reuse.
+    uid: int = field(default_factory=lambda: next(_next_uid))
 
     def update(self, dt: float, target: pygame.Vector2) -> None:
         if not self.alive:

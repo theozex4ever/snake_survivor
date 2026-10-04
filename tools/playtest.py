@@ -97,6 +97,13 @@ def death_cause(game, hp_before):
     return "wall" if not in_bounds((hx + dx, hy + dy)) else "self"
 
 
+def advance(game):
+    """Run one frame; return (hit, ate) as 0/1 counts for HP loss and food pickup."""
+    hp_before, food_before = game.snake.hp, game.food
+    game.update(DT)
+    return int(game.snake.hp < hp_before), int(game.food != food_before)
+
+
 def play_run(game, speed_index, profile, upgrade_policy, rng):
     game.reset()
     game.speed_index = speed_index
@@ -127,16 +134,14 @@ def play_run(game, speed_index, profile, upgrade_policy, rng):
             if d:
                 game.snake.direction_queue.clear()
                 game.snake.set_direction(d)
-        hp_before, score_before = game.snake.hp, game.score
-        game.update(DT)
+        hp_before = game.snake.hp
+        hit, ate = advance(game)
         t += DT
-        if game.snake.hp < hp_before and game.snake.alive:
-            hits += 1
-        if game.score - score_before == 10:
-            foods += 1
+        hits += hit
+        foods += ate
         if not game.snake.alive:
             return dict(cause=death_cause(game, hp_before), wave=game.wave_mgr.wave, score=game.score,
-                        seconds=round(t, 1), upgrades=upgrades, hits=hits + 1, foods=foods,
+                        seconds=round(t, 1), upgrades=upgrades, hits=hits, foods=foods,
                         wave_times=wave_times, length=len(game.snake.segments))
     return dict(cause="survived", wave=game.wave_mgr.wave, score=game.score, seconds=round(t, 1),
                 upgrades=upgrades, hits=hits, foods=foods, wave_times=wave_times,

@@ -322,6 +322,7 @@ class Game:
             # Check if snake died after move
             if not self.snake.alive:
                 self._on_game_over()
+                return  # freeze the frame so the saved score matches the displayed one
             elif self.snake.head == self.food:
                 self.snake.grow(1)
                 self.score += FOOD_SCORE
@@ -356,11 +357,11 @@ class Game:
             if not bullet.alive:
                 continue
             for enemy in self.enemies:
-                if not enemy.alive or id(enemy) in bullet.hit_ids:
+                if not enemy.alive or enemy.uid in bullet.hit_ids:
                     continue
                 combined = bullet.radius + enemy.radius
                 if (bullet.pos - enemy.pos).length_squared() <= combined * combined:
-                    bullet.hit_ids.add(id(enemy))
+                    bullet.hit_ids.add(enemy.uid)
                     died = enemy.take_damage(bullet.damage)
                     self._spawn_hit_particles(enemy.pos, ENEMY_COLOR, count=8 if not died else 18)
                     if died:
@@ -388,6 +389,7 @@ class Game:
                 self.sound_mgr.play("player_hurt")
                 if not self.snake.alive:
                     self._on_game_over()
+                    break
 
         self.bullets = [b for b in self.bullets if b.alive]
         self.enemies = [e for e in self.enemies if e.alive]
