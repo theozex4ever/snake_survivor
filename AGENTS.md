@@ -14,3 +14,7 @@ Use the five default triage labels. Before triage, read `docs/agents/triage-labe
 ### Domain docs
 
 Use a single-context layout. Before codebase exploration, read `docs/agents/domain.md`.
+
+### Bug reports
+
+Record bugs in `docs/bugs/`: software defects under `technical/` (`TECH-`), player-facing issues under `gameplay/` (`GP-`), each with its own `TEMPLATE.md`. Only report bugs on the current branch: reproduce them against the checked-out code and fill in the `Branch` field.

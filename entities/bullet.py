@@ -13,6 +13,7 @@ class Bullet:
     alive: bool = True
     damage: int = 1
     piercing: int = 0
+    hit_ids: set = field(default_factory=set)
 
     def update(self, dt: float) -> None:
         self.pos += self.vel * dt

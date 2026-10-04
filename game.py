@@ -17,6 +17,8 @@ from constants import (
     LOW_HP_THRESHOLD, WAVE_BANNER_DURATION, HIGH_SCORE_FILE,
     STARTING_PLAYER_HP,
 )
+
+MAX_FRAME_DT = 0.05  # clamp frame spikes so a stall can't skip a move or enemy hit
 from utils import cell_center, random_empty_cell
 from entities import Snake, Enemy, Bullet, Particle
 from systems.wave_manager import WaveManager
@@ -99,6 +101,10 @@ class Game:
                 open(path, 'w').write(str(self._high_score))
             except Exception:
                 pass
+
+    def _on_game_over(self) -> None:
+        self.sound_mgr.play("game_over")
+        self._save_high_score()
 
     def _confirm_speed(self) -> None:
         self.move_interval = SPEED_OPTIONS[self.speed_index][1]
@@ -217,6 +223,7 @@ class Game:
     def process_input(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self._save_high_score()
                 self.running = False
             elif event.type == pygame.KEYDOWN:
                 if self.state == "menu":
@@ -266,7 +273,7 @@ class Game:
                         self.snake.set_direction((-1, 0))
                     elif event.key in (pygame.K_d, pygame.K_RIGHT):
                         self.snake.set_direction((1, 0))
-                    elif event.key == pygame.K_p and self.state == "playing":
+                    elif event.key == pygame.K_p and self.state == "playing" and self.snake.alive:
                         self._resume_state = "playing"
                         self.state = "paused"
                     elif event.key == pygame.K_r and not self.snake.alive:
@@ -314,7 +321,7 @@ class Game:
             self.snake.move()
             # Check if snake died after move
             if not self.snake.alive:
-                self.sound_mgr.play("game_over")
+                self._on_game_over()
             elif self.snake.head == self.food:
                 self.snake.grow(1)
                 self.score += FOOD_SCORE
@@ -349,10 +356,11 @@ class Game:
             if not bullet.alive:
                 continue
             for enemy in self.enemies:
-                if not enemy.alive:
+                if not enemy.alive or id(enemy) in bullet.hit_ids:
                     continue
                 combined = bullet.radius + enemy.radius
                 if (bullet.pos - enemy.pos).length_squared() <= combined * combined:
+                    bullet.hit_ids.add(id(enemy))
                     died = enemy.take_damage(bullet.damage)
                     self._spawn_hit_particles(enemy.pos, ENEMY_COLOR, count=8 if not died else 18)
                     if died:
@@ -378,6 +386,8 @@ class Game:
                 self._spawn_hit_particles(enemy.pos, (255, 100, 100), count=20)
                 self._spawn_hit_particles(head_pos, (100, 255, 160), count=12)
                 self.sound_mgr.play("player_hurt")
+                if not self.snake.alive:
+                    self._on_game_over()
 
         self.bullets = [b for b in self.bullets if b.alive]
         self.enemies = [e for e in self.enemies if e.alive]
@@ -479,7 +489,7 @@ class Game:
 
     def run(self) -> None:
         while self.running:
-            dt = self.clock.tick(FPS) / 1000.0
+            dt = min(self.clock.tick(FPS) / 1000.0, MAX_FRAME_DT)
             self.process_input()
             self.update(dt)
             self.draw()
