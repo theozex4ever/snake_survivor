@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -9,6 +10,13 @@ import pygame
 import pytest
 
 import game as game_module
+
+
+@pytest.fixture
+def run():
+    from constants import SPEED_OPTIONS
+    from run import Run
+    return Run(SPEED_OPTIONS[1][1], rng=random.Random(0))
 
 
 @pytest.fixture

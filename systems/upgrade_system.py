@@ -41,5 +41,5 @@ UPGRADE_POOL: List[dict] = [
 ]
 
 
-def roll(n: int = 3) -> List[dict]:
-    return random.sample(UPGRADE_POOL, min(n, len(UPGRADE_POOL)))
+def roll(n: int = 3, rng: random.Random = random) -> List[dict]:
+    return rng.sample(UPGRADE_POOL, min(n, len(UPGRADE_POOL)))

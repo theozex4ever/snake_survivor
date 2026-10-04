@@ -76,7 +76,7 @@ class Game:
 
         self.move_timer = 0.0
         self.shoot_timer = 0.0
-        self.wave_mgr.reset()
+        self.wave_mgr = WaveManager()
         self._wave_banner_timer = 0.0
         self._spawn_telegraphs: list = []  # list of [pos: pygame.Vector2, timer: float]
 
@@ -143,18 +143,6 @@ class Game:
 
     def spawn_food(self) -> Tuple[int, int]:
         return random_empty_cell(self.snake.occupied_cells())
-
-    def spawn_enemy(self) -> None:
-        hp = self.wave_mgr.enemy_hp()
-        pos = self.wave_mgr.random_spawn_pos()
-        pos_copy = pygame.Vector2(pos)
-        self.enemies.append(Enemy(
-            pos=pos,
-            speed=self.wave_mgr.enemy_speed(),
-            max_hp=hp,
-            hp=hp,
-        ))
-        self._spawn_telegraphs.append([pos_copy, 0.8])
 
     def nearest_enemy(self) -> Optional[Enemy]:
         living = [e for e in self.enemies if e.alive]
@@ -333,10 +321,11 @@ class Game:
         self._spawn_telegraphs = [[p, t - dt] for p, t in self._spawn_telegraphs if t - dt > 0]
 
         living_count = sum(1 for e in self.enemies if e.alive)
-        signal = self.wave_mgr.update(dt, living_count)
-        if signal == "spawn":
-            self.spawn_enemy()
-        elif signal == "wave_complete":
+        enemy, wave_complete = self.wave_mgr.update(dt, living_count)
+        if enemy is not None:
+            self.enemies.append(enemy)
+            self._spawn_telegraphs.append([pygame.Vector2(enemy.pos), 0.8])
+        elif wave_complete:
             self.add_trauma(SHAKE_TRAUMA_WAVE_START)
             self.sound_mgr.play("wave_complete")
             self._wave_banner_timer = WAVE_BANNER_DURATION

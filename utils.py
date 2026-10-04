@@ -23,7 +23,7 @@ def cell_center(cell: Tuple[int, int]) -> pygame.Vector2:
     return pygame.Vector2(x + CELL_SIZE / 2, y + CELL_SIZE / 2)
 
 
-def random_empty_cell(occupied: set) -> Tuple[int, int]:
+def random_empty_cell(occupied: set, rng: random.Random = random) -> Tuple[int, int]:
     free = [
         (x, y)
         for x in range(GRID_WIDTH)
@@ -32,4 +32,4 @@ def random_empty_cell(occupied: set) -> Tuple[int, int]:
     ]
     if not free:
         raise ValueError("no empty cell available")
-    return random.choice(free)
+    return rng.choice(free)
