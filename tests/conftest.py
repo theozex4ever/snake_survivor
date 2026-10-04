@@ -10,12 +10,12 @@ import pygame
 import pytest
 
 import game as game_module
+from constants import SPEED_OPTIONS
+from run import Run
 
 
 @pytest.fixture
 def run():
-    from constants import SPEED_OPTIONS
-    from run import Run
     return Run(SPEED_OPTIONS[1][1], rng=random.Random(0))
 
 
@@ -25,7 +25,7 @@ def game(tmp_path, monkeypatch):
     monkeypatch.setattr(game_module, "HIGH_SCORE_FILE", str(tmp_path / "highscore.txt"))
     g = game_module.Game()
     g.sound_mgr.play = lambda name: None
-    g.reset()
-    g.state = "playing"
+    g._start_run()
+    g.run = Run(g.run.move_interval, rng=random.Random(0))  # seeded for repeatable tests
     yield g
     pygame.quit()

@@ -115,6 +115,15 @@ def test_enemy_moves_toward_target():
     assert e.pos == pygame.Vector2(50, 0)
 
 
+def test_enemy_uids_are_unique_across_removed_enemies():
+    uids = set()
+    for _ in range(1000):
+        e = Enemy(pos=pygame.Vector2(), speed=0, max_hp=1, hp=1)
+        assert e.uid not in uids
+        uids.add(e.uid)
+        del e
+
+
 def test_enemy_take_damage_reports_death():
     e = Enemy(pos=pygame.Vector2(), speed=1, max_hp=2, hp=2)
     assert e.take_damage(1) is False

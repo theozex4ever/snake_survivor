@@ -208,7 +208,7 @@ def draw_upgrade_pick(
     font: pygame.font.Font,
     small_font: pygame.font.Font,
     offered_upgrades: List[dict],
-    game_ref,
+    run,
 ) -> List[pygame.Rect]:
     screen.blit(game_surface, (0, 0))
     _dim_overlay(screen, alpha=170)
@@ -242,7 +242,7 @@ def draw_upgrade_pick(
         desc_surf = small_font.render(upg["desc"], True, UI_SUBTEXT)
         screen.blit(desc_surf, desc_surf.get_rect(center=(rect.centerx, rect.centery + 12)))
 
-        stat_surf = small_font.render(upg["stat"](game_ref), True, SNAKE_HEAD_COLOR)
+        stat_surf = small_font.render(upg["stat"](run), True, SNAKE_HEAD_COLOR)
         screen.blit(stat_surf, stat_surf.get_rect(center=(rect.centerx, rect.bottom - 32)))
 
     hint = small_font.render("1  /  2  /  3   or   click", True, UI_SUBTEXT)

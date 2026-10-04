@@ -91,7 +91,8 @@ Upgrades can be selected again in later waves and stack for the current run. Res
 ```text
 snake_survivor/
 ├── main.py                   # Entry point
-├── game.py                   # Game states, input, combat, updates, rendering
+├── game.py                   # Screens, input, sound, effects, rendering, high score
+├── run.py                    # Rules of one run: movement, food, combat, waves, upgrades
 ├── constants.py              # Colors, dimensions, timings, and balance values
 ├── utils.py                  # Grid coordinates and food placement helpers
 ├── entities/
@@ -110,7 +111,7 @@ snake_survivor/
 └── requirements.txt          # Python dependency
 ```
 
-`Game` coordinates the entities, systems, and UI through menu, speed selection, playing, pause, wave-clear, and upgrade-selection states. The snake moves on a discrete grid; enemies and bullets use continuous pixel positions and circular collision checks. Most tuning values live in `constants.py`, while wave scaling lives in `systems/wave_manager.py` and upgrade effects in `Game._apply_upgrade()`.
+A `Run` (`run.py`) holds the rules of one play-through. Callers steer it, call `step(dt)`, and react to the events it returns (shots, hits, food eaten, wave cleared, run over). It has no window, sound, or effects, so tests and the playtest bot drive it directly. `Game` is the app around a run: menu, speed selection, pause, the wave banner and upgrade cards, input, sound, particles, screen shake, and the high score. The snake moves on a discrete grid; enemies and bullets use continuous pixel positions and circular collision checks. Most tuning values live in `constants.py`, while wave scaling lives in `systems/wave_manager.py` and upgrade effects in `Run.pick_upgrade()`. Domain terms are defined in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## Playtest bot
 
