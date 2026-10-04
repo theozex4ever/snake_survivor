@@ -269,9 +269,10 @@ def test_frames_are_opaque_on_windows_with_an_alpha_channel(tmp_path, monkeypatc
     g._start_run(rng=random.Random(0))
     try:
         for screen in draw_every_screen(g):
-            # array_alpha() reports 255 for surfaces without SRCALPHA, so read raw pixels.
-            alpha = (pygame.surfarray.array2d(window["surface"]) >> 24) & 0xFF
-            assert alpha.min() == 255, f"transparent pixels on the {screen} screen"
+            # Read the raw alpha bytes: surfarray needs NumPy, and array_alpha()
+            # reports 255 for any surface without the SRCALPHA flag.
+            alpha = pygame.image.tobytes(window["surface"], "RGBA")[3::4]
+            assert min(alpha) == 255, f"transparent pixels on the {screen} screen"
     finally:
         pygame.quit()
 
