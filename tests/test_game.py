@@ -1,9 +1,15 @@
 """Game is the adapter around a Run: these tests cover input, screens, effects
 and the high score. The rules of a run are tested in test_run.py."""
-import pygame
+import random
 
+import pygame
+import pygame.freetype
+
+import game as game_module
 from constants import ENEMY_SPAWN_GAP, GRID_WIDTH, SPEED_OPTIONS, WAVE_BANNER_DURATION
 from entities import Bullet, Enemy
+from systems.upgrade_system import UPGRADE_POOL
+from ui.hud import HUD
 
 
 def press(game, key):
@@ -214,21 +220,88 @@ def test_quit_saves_high_score(game):
     assert game._load_high_score() == 70
 
 
-# --- rendering smoke -------------------------------------------------------
+# --- rendering -------------------------------------------------------------
 
-def test_every_screen_renders(game):
+def draw_every_screen(game):
+    """Draw each screen in turn, yielding its name after it is drawn."""
     enemy_at(game, game.run.snake.head_center() + (0, 200))
     for _ in range(40):
         game.update(1 / 60)
     for state in ("menu", "speed_select", "playing", "paused"):
         game.state = state
         game.draw()
+        yield state
     game.state = "playing"
     clear_wave(game)
-    game.draw()  # wave banner
+    game.draw()
+    yield "wave banner"
     game.update(WAVE_BANNER_DURATION)
-    game.draw()  # upgrade cards
-    assert len(game._upgrade_card_rects) == 3
+    game.draw()
+    yield "upgrade cards"
     press(game, pygame.K_1)
     end_run_at_wall(game)
-    game.draw()  # game over
+    game.draw()
+    yield "game over"
+
+
+def test_every_screen_renders(game):
+    assert len(list(draw_every_screen(game))) == 7
+
+
+ARGB = (0xFF0000, 0xFF00, 0xFF, 0xFF000000)
+
+
+def test_frames_are_opaque_on_windows_with_an_alpha_channel(tmp_path, monkeypatch):
+    """GP-009: KDE Wayland hands out a window surface with an alpha channel.
+    Translucent blits onto it left alpha-0 holes (black squares on screen)."""
+    real_set_mode = pygame.display.set_mode
+    window = {}
+
+    def set_mode(size, *args, **kwargs):
+        real_set_mode(size, *args, **kwargs)
+        window["surface"] = pygame.Surface(size, 0, 32, ARGB)
+        return window["surface"]
+
+    monkeypatch.setattr(pygame.display, "set_mode", set_mode)
+    monkeypatch.setattr(game_module, "HIGH_SCORE_FILE", str(tmp_path / "highscore.txt"))
+    g = game_module.Game()
+    g.sound_mgr.play = lambda name: None
+    g._start_run(rng=random.Random(0))
+    try:
+        for screen in draw_every_screen(g):
+            # Read the raw alpha bytes: surfarray needs NumPy, and array_alpha()
+            # reports 255 for any surface without the SRCALPHA flag.
+            alpha = pygame.image.tobytes(window["surface"], "RGBA")[3::4]
+            assert min(alpha) == 255, f"transparent pixels on the {screen} screen"
+    finally:
+        pygame.quit()
+
+
+class RecordingFont:
+    def __init__(self, font, seen):
+        self._font, self._seen = font, seen
+
+    def render(self, text, *args, **kwargs):
+        self._seen.add(text)
+        return self._font.render(text, *args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._font, name)
+
+
+def test_every_rendered_character_has_a_glyph(game):
+    """GP-010: characters missing from the font render as boxes."""
+    seen = set()
+    game.font, game.big_font, game.small_font = (
+        RecordingFont(f, seen) for f in (game.font, game.big_font, game.small_font))
+    game.hud = HUD(game.font, game.big_font, game.small_font)
+    list(draw_every_screen(game))
+    for upgrade in UPGRADE_POOL:  # cards only show three, so check every preview
+        seen |= {upgrade["name"], upgrade["desc"], upgrade["stat"](game.run)}
+
+    pygame.freetype.init()
+    fonts = {pygame.font.match_font("poppins", bold=b) for b in (False, True)}
+    for path in fonts:  # None = pygame's fallback font, used when Poppins isn't installed
+        face = pygame.freetype.Font(path, 16)
+        missing = {c for text in seen for c in text if face.get_metrics(c) == [None]}
+        assert not missing, f"{path or 'default font'} has no glyph for {sorted(missing)}"

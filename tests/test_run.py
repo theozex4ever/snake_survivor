@@ -345,4 +345,4 @@ def test_upgrade_floors(run):
 def test_upgrade_previews_read_the_run(run):
     from systems.upgrade_system import UPGRADE_POOL
     for upgrade in UPGRADE_POOL:
-        assert "→" in upgrade["stat"](run)
+        assert "->" in upgrade["stat"](run)

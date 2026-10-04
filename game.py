@@ -37,6 +37,10 @@ PICK_KEYS = {pygame.K_1: 0, pygame.K_2: 1, pygame.K_3: 2}
 SPEED_KEYS = {pygame.K_1: 0, pygame.K_2: 1, pygame.K_3: 2, pygame.K_4: 3}
 
 
+def _opaque_surface() -> pygame.Surface:
+    return pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32, (0xFF0000, 0xFF00, 0xFF, 0))
+
+
 class Game:
     """The app around a Run: window, screens, input, sound, effects and the high score.
 
@@ -47,7 +51,11 @@ class Game:
     def __init__(self) -> None:
         pygame.init()
         pygame.display.set_caption(TITLE)
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        # Everything is drawn on opaque canvases and copied to the window once per
+        # frame. Some window surfaces (e.g. KDE Wayland) carry an alpha channel, and
+        # translucent blits onto them leave transparent holes that show as black.
+        self.screen = _opaque_surface()
         self.clock = pygame.time.Clock()
 
         self.font = pygame.font.SysFont("poppins", 22)
@@ -56,7 +64,7 @@ class Game:
         self.hud = HUD(self.font, self.big_font, self.small_font)
 
         self.speed_index = DEFAULT_SPEED_INDEX
-        self.game_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.game_surface = _opaque_surface()
         self._upgrade_card_rects: List[pygame.Rect] = []
         self.running = True
 
@@ -91,8 +99,8 @@ class Game:
             except Exception:
                 pass
 
-    def _start_run(self) -> None:
-        self.run = Run(SPEED_OPTIONS[self.speed_index][1])
+    def _start_run(self, rng: Optional[random.Random] = None) -> None:
+        self.run = Run(SPEED_OPTIONS[self.speed_index][1], rng=rng)
         self.particles = []
         self.shake_trauma = 0.0
         self._wave_banner_timer = 0.0
@@ -241,6 +249,11 @@ class Game:
     # ------------------------------------------------------------------
 
     def draw(self) -> None:
+        self._render()
+        self.window.blit(self.screen, (0, 0))
+        pygame.display.flip()
+
+    def _render(self) -> None:
         if self.state == "menu":
             draw_menu(self.screen, self.big_font, self.font, self.small_font, self._high_score)
             return
@@ -269,7 +282,6 @@ class Game:
             return
 
         self._blit_with_shake()
-        pygame.display.flip()
 
     def _draw_world(self) -> None:
         run = self.run

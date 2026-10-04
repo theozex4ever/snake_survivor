@@ -89,7 +89,6 @@ def draw_menu(
         hs = small_font.render(f"Best  {high_score}", True, UI_ACCENT)
         screen.blit(hs, hs.get_rect(center=(cx, card.top + 230)))
 
-    pygame.display.flip()
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +113,6 @@ def draw_pause(
     resume = font.render("Press  P  to  resume", True, UI_SUBTEXT)
     screen.blit(resume, resume.get_rect(center=(cx, cy + 26)))
 
-    pygame.display.flip()
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +137,6 @@ def draw_wave_banner(
     sub = font.render("Choosing upgrade…", True, UI_SUBTEXT)
     screen.blit(sub, sub.get_rect(center=(cx, cy + 26)))
 
-    pygame.display.flip()
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +163,7 @@ def draw_speed_select(
     title = big_font.render("Choose  Speed", True, TEXT_COLOR)
     screen.blit(title, title.get_rect(center=(cx, cy - 148)))
 
-    prompt = small_font.render("← →  navigate     Enter  confirm     1–4  pick directly", True, UI_SUBTEXT)
+    prompt = small_font.render("Left / Right  navigate     Enter  confirm     1–4  pick directly", True, UI_SUBTEXT)
     screen.blit(prompt, prompt.get_rect(center=(cx, cy - 110)))
 
     card_w, card_h = 200, 120
@@ -194,7 +191,6 @@ def draw_speed_select(
         hint_surf = small_font.render(f"[ {i + 1} ]", True, hint_col)
         screen.blit(hint_surf, hint_surf.get_rect(center=(rect.centerx, rect.centery + 36)))
 
-    pygame.display.flip()
 
 
 # ---------------------------------------------------------------------------
@@ -248,5 +244,4 @@ def draw_upgrade_pick(
     hint = small_font.render("1  /  2  /  3   or   click", True, UI_SUBTEXT)
     screen.blit(hint, hint.get_rect(center=(cx, cy + card_h // 2 + 28)))
 
-    pygame.display.flip()
     return card_rects
