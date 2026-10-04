@@ -15,7 +15,7 @@ A bug goes in the track of its *symptom*. If one root cause shows up as both, fi
 
 **Review-found bugs:** TECH-005 to TECH-008 were found in review of PR #2 and are defects in the fixes made for earlier reports. They are recorded because the first round of tests missed them.
 
-**Honesty note:** GP-001 to GP-004 and all technical bugs were found by code review and confirmed with tests. GP-005 to GP-007 were found by the headless bot in `tools/playtest.py`, which is a simulation, not a human. See the [playtest baseline](playtests/2026-10-04-baseline.md) for method, limits, and raw numbers. None has been found by hands-on human play yet. Reports found that way should set `Found by: Playtest (human)` and include the build tested.
+**Honesty note:** GP-001 to GP-004 and all technical bugs were found by code review and confirmed with tests. GP-005 to GP-007 were found by the headless bot in `tools/playtest.py`, which is a simulation, not a human. See the [playtest baseline](playtests/2026-10-04-baseline.md) for method, limits, and raw numbers. GP-008 to GP-010 came from hands-on human play on `refactor/improve-codebase-architecture`. GP-009 and GP-010 were reproduced on that branch; GP-008 was not, and is kept as an informative record.
 
 **Method (technical and GP-001 to GP-004):** read the code, then wrote tests. All new tests were run against the original commit (`3b375eb`) before the fixes, so the "Failing test" column is evidence that the bug existed. Tests that merely depend on new internals are not counted.
 
@@ -30,6 +30,9 @@ A bug goes in the track of its *symptom*. If one root cause shows up as both, fi
 | [GP-005](gameplay/GP-005-big-bullet-dominates.md) | Big Bullet dominates every other upgrade | Medium | Balance | Open | Found by bot playtest (see [baseline](playtests/2026-10-04-baseline.md)) |
 | [GP-006](gameplay/GP-006-runs-end-by-hp-attrition.md) | Every run is decided by a fixed hit budget | Medium | Balance | Open | Found by bot playtest |
 | [GP-007](gameplay/GP-007-four-upgrades-do-not-help.md) | Four upgrades give no measurable benefit | Medium | Balance | Open | Found by bot playtest |
+| [GP-008](gameplay/GP-008-no-food-not-reproduced.md) | "No food in the game" (not reproduced) | n/a | UX | Informative | Not reproduced; findings only |
+| [GP-009](gameplay/GP-009-black-squares-on-alpha-windows.md) | Black squares behind the hearts and food on the upgrade screen | Medium | Rendering | Fixed | `test_frames_are_opaque_on_windows_with_an_alpha_channel` |
+| [GP-010](gameplay/GP-010-arrow-glyphs-render-as-boxes.md) | Arrows in the upgrade previews render as boxes | Low | UX | Fixed | `test_every_rendered_character_has_a_glyph` |
 
 ## Technical bugs
 
