@@ -207,8 +207,8 @@ class Game:
                     if event.key in (pygame.K_p, pygame.K_ESCAPE):
                         self.state = "playing"
                 elif self._choosing_upgrade():
-                    if event.key in PICK_KEYS and PICK_KEYS[event.key] < len(self.run.offered_upgrades):
-                        self.run.pick_upgrade(self.run.offered_upgrades[PICK_KEYS[event.key]]["key"])
+                    if event.key in PICK_KEYS and PICK_KEYS[event.key] < len(self.run.offers):
+                        self.run.pick_upgrade(self.run.offers[PICK_KEYS[event.key]].key)
                     elif event.key == pygame.K_p:
                         self.state = "paused"
                 elif event.key in STEER_KEYS:
@@ -221,8 +221,8 @@ class Game:
             elif (event.type == pygame.MOUSEBUTTONDOWN and self.state == "playing"
                   and self._choosing_upgrade()):
                 for i, rect in enumerate(self._upgrade_card_rects):
-                    if rect.collidepoint(event.pos) and i < len(self.run.offered_upgrades):
-                        self.run.pick_upgrade(self.run.offered_upgrades[i]["key"])
+                    if rect.collidepoint(event.pos) and i < len(self.run.offers):
+                        self.run.pick_upgrade(self.run.offers[i].key)
                         break
 
     # ------------------------------------------------------------------
@@ -277,7 +277,7 @@ class Game:
                 self._upgrade_card_rects = draw_upgrade_pick(
                     self.screen, self.game_surface,
                     self.big_font, self.font, self.small_font,
-                    self.run.offered_upgrades, self.run,
+                    self.run.offers,
                 )
             return
 

@@ -110,14 +110,14 @@ def play_run(speed_index, profile, upgrade_policy, seed):
     last_wave_start = 0.0
     while t < MAX_SIM_SECONDS:
         if run.phase == "choosing_upgrade":
-            offers = run.offered_upgrades
+            offers = run.offers
             if upgrade_policy == "first":
-                key = offers[0]["key"]
+                key = offers[0].key
             elif upgrade_policy.startswith("prefer:"):
                 wanted = upgrade_policy.split(":", 1)[1]
-                key = wanted if any(o["key"] == wanted for o in offers) else rng.choice(offers)["key"]
+                key = wanted if any(o.key == wanted for o in offers) else rng.choice(offers).key
             else:
-                key = rng.choice(offers)["key"]
+                key = rng.choice(offers).key
             upgrades.append(key)
             wave_times[run.wave] = t - last_wave_start
             last_wave_start = t

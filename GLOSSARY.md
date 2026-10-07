@@ -13,5 +13,13 @@ A numbered batch of enemies within a run. It is cleared when all of its enemies 
 _Avoid_: Level, round
 
 **Upgrade**:
-A permanent boost to the snake that the player picks from three offers after each cleared wave. It lasts until the run ends.
+A boost the player picks from three Offers after each cleared wave. It changes the run's Stats for the rest of the run, or adds HP.
 _Avoid_: Perk, power-up
+
+**Offer**:
+One of the three Upgrades shown after a cleared wave, together with a preview of what picking it would change.
+_Avoid_: Choice, card
+
+**Stats**:
+The numbers of a run that Upgrades change: how often the snake moves and fires, how fast, big, damaging and piercing its bullets are, and how long it stays invulnerable after a hit. A run starts from the chosen speed and default values. HP is not a Stat, because enemies wear it down.
+_Avoid_: Loadout, attributes
