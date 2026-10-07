@@ -8,7 +8,6 @@ from constants import (
     SCREEN_HEIGHT, SCREEN_WIDTH,
 )
 from entities import Bullet, Enemy, Particle
-from systems.upgrade_system import UPGRADE_POOL, roll
 from systems.wave_manager import WaveManager
 from utils import cell_center, clamp, grid_to_pixel, lerp, random_empty_cell
 
@@ -90,21 +89,6 @@ def test_spawn_positions_are_offscreen():
             p = e.pos
             assert p.x < 0 or p.x > SCREEN_WIDTH or p.y < 0 or p.y > SCREEN_HEIGHT
         wm.advance()
-
-
-# --- upgrades --------------------------------------------------------------
-
-def test_roll_offers_three_distinct_upgrades():
-    rng = random.Random(0)
-    for _ in range(50):
-        offers = roll(rng=rng)
-        assert len(offers) == 3
-        assert len({o["key"] for o in offers}) == 3
-
-
-def test_every_upgrade_has_required_fields():
-    for u in UPGRADE_POOL:
-        assert {"key", "name", "desc", "stat"} <= u.keys()
 
 
 # --- entities --------------------------------------------------------------

@@ -8,8 +8,8 @@ import pygame.freetype
 import game as game_module
 from constants import ENEMY_SPAWN_GAP, GRID_WIDTH, SPEED_OPTIONS, WAVE_BANNER_DURATION
 from entities import Bullet, Enemy
-from systems.upgrade_system import UPGRADE_POOL
 from ui.hud import HUD
+from upgrades import UPGRADES, offer
 
 
 def press(game, key):
@@ -60,14 +60,14 @@ def test_menu_to_speed_select_to_playing(game):
     press(game, pygame.K_RIGHT)
     press(game, pygame.K_RETURN)
     assert game.state == "playing"
-    assert game.run.move_interval == SPEED_OPTIONS[2][1]
+    assert game.run.stats.move_interval == SPEED_OPTIONS[2][1]
 
 
 def test_number_key_picks_speed_and_starts(game):
     game.state = "speed_select"
     press(game, pygame.K_4)
     assert game.state == "playing"
-    assert game.run.move_interval == SPEED_OPTIONS[3][1]
+    assert game.run.stats.move_interval == SPEED_OPTIONS[3][1]
 
 
 def test_speed_selection_is_clamped(game):
@@ -296,8 +296,9 @@ def test_every_rendered_character_has_a_glyph(game):
         RecordingFont(f, seen) for f in (game.font, game.big_font, game.small_font))
     game.hud = HUD(game.font, game.big_font, game.small_font)
     list(draw_every_screen(game))
-    for upgrade in UPGRADE_POOL:  # cards only show three, so check every preview
-        seen |= {upgrade["name"], upgrade["desc"], upgrade["stat"](game.run)}
+    for upgrade in UPGRADES:  # cards only show three, so check every offer
+        o = offer(upgrade.key, game.run.stats, game.run.snake.hp)
+        seen |= {o.name, o.desc, *o.preview}
 
     pygame.freetype.init()
     fonts = {pygame.font.match_font("poppins", bold=b) for b in (False, True)}

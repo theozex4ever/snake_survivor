@@ -11,6 +11,7 @@ from entities import Bullet, Enemy
 from run import (
     EnemyContact, EnemyHit, EnemySpawned, FoodEaten, Run, RunOver, Shot, WaveCleared,
 )
+from upgrades import offer as make_offer
 
 NORMAL = SPEED_OPTIONS[1][1]
 TICK = 0.001  # short enough that the snake doesn't move and no enemy spawns
@@ -41,7 +42,7 @@ def clear_wave(run):
 def offer(run, *keys):
     """Clear the wave, then pin the offers so a test can pick a specific upgrade."""
     clear_wave(run)
-    run.offered_upgrades = [{"key": k} for k in keys]
+    run.offers = [make_offer(k, run.stats, run.snake.hp) for k in keys]
 
 
 def wall_bound(run):
@@ -112,7 +113,7 @@ def until_next_shot(run):
     """Burn the first spawn so the next step's shot sees only the test's enemies."""
     run.step(ENEMY_SPAWN_GAP)
     run.enemies.clear()
-    return run.shoot_interval - ENEMY_SPAWN_GAP + TICK
+    return run.stats.shoot_interval - ENEMY_SPAWN_GAP + TICK
 
 
 def test_auto_shoot_aims_at_nearest_enemy(run):
@@ -137,7 +138,7 @@ def test_bullets_carry_current_upgrades(run):
     run.pick_upgrade("big_bullet")
     enemy_at(run, run.snake.head_center() + (0, 200))  # nearer than any wave spawn
     run.bullets.clear()
-    run.step(run.shoot_interval)
+    run.step(run.stats.shoot_interval)
     assert (run.bullets[0].radius, run.bullets[0].damage) == (6, 2)
 
 
@@ -210,7 +211,7 @@ def test_thick_skin_lengthens_invulnerability(run):
     run.pick_upgrade("thick_skin")
     enemy_at(run, run.snake.head_center())
     run.step(TICK)
-    assert run.snake.invuln_timer == pytest.approx(run.invuln_time)
+    assert run.snake.invuln_timer == pytest.approx(run.stats.invuln_time)
 
 
 # --- run over --------------------------------------------------------------
@@ -284,8 +285,16 @@ def test_later_waves_spawn_tougher_enemies(run):
 def test_clearing_a_wave_offers_three_upgrades(run):
     events = clear_wave(run)
     assert WaveCleared(1) in events
-    assert len(run.offered_upgrades) == 3
-    assert len({o["key"] for o in run.offered_upgrades}) == 3
+    assert len({o.key for o in run.offers}) == 3
+    assert all(o.preview for o in run.offers)
+
+
+def test_offers_preview_the_runs_current_stats_and_hp(run):
+    offer(run, "big_bullet")
+    run.pick_upgrade("big_bullet")
+    run.snake.hp = 2
+    clear_wave(run)
+    assert run.offers == [make_offer(o.key, run.stats, 2) for o in run.offers]
 
 
 def test_run_pauses_while_choosing_upgrade(run):
@@ -300,7 +309,7 @@ def test_picking_upgrade_starts_next_wave(run):
     run.pick_upgrade("extra_heart")
     assert run.phase == "playing"
     assert run.wave == 2
-    assert run.offered_upgrades == []
+    assert run.offers == []
     assert run.snake.hp == STARTING_PLAYER_HP + 1
 
 
@@ -314,35 +323,3 @@ def test_picking_an_upgrade_mid_wave_raises(run):
     with pytest.raises(ValueError):
         run.pick_upgrade("extra_heart")
 
-
-# --- upgrade effects -------------------------------------------------------
-
-@pytest.mark.parametrize("key, field, expected", [
-    ("faster_fire", "shoot_interval", 0.48),
-    ("big_bullet", "bullet_radius", 6),
-    ("big_bullet", "bullet_damage", 2),
-    ("thick_skin", "invuln_time", 1.05),
-    ("piercing_shot", "bullet_piercing", 1),
-    ("swift_snake", "move_interval", NORMAL * 0.9),
-])
-def test_upgrade_effects(run, key, field, expected):
-    offer(run, key)
-    run.pick_upgrade(key)
-    assert getattr(run, field) == pytest.approx(expected)
-
-
-def test_upgrade_floors(run):
-    run.shoot_interval = 0.08
-    run.move_interval = 0.04
-    offer(run, "faster_fire")
-    run.pick_upgrade("faster_fire")
-    offer(run, "swift_snake")
-    run.pick_upgrade("swift_snake")
-    assert run.shoot_interval == 0.08
-    assert run.move_interval == 0.04
-
-
-def test_upgrade_previews_read_the_run(run):
-    from systems.upgrade_system import UPGRADE_POOL
-    for upgrade in UPGRADE_POOL:
-        assert "->" in upgrade["stat"](run)

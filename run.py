@@ -9,13 +9,11 @@ from typing import List, Optional, Tuple
 
 import pygame
 
-from constants import (
-    AUTO_SHOOT_INTERVAL, BULLET_RADIUS, BULLET_SPEED, ENEMY_KILL_SCORE,
-    ENEMY_TOUCH_DAMAGE, FOOD_SCORE, INVULN_TIME, PLAYER_COLLISION_RADIUS,
-)
+import upgrades
+from constants import ENEMY_KILL_SCORE, ENEMY_TOUCH_DAMAGE, FOOD_SCORE, PLAYER_COLLISION_RADIUS
 from entities import Bullet, Enemy, Snake
-from systems.upgrade_system import roll as roll_upgrades
 from systems.wave_manager import WaveManager
+from upgrades import Offer, Stats
 from utils import random_empty_cell
 
 
@@ -78,16 +76,8 @@ class Run:
         self.score = 0
         self.bullets: List[Bullet] = []
         self.enemies: List[Enemy] = []
-        self.offered_upgrades: List[dict] = []
-
-        # Per-run stats that upgrades change.
-        self.move_interval = move_interval
-        self.shoot_interval = AUTO_SHOOT_INTERVAL
-        self.bullet_speed = BULLET_SPEED
-        self.bullet_radius = BULLET_RADIUS
-        self.bullet_damage = 1
-        self.bullet_piercing = 0
-        self.invuln_time = INVULN_TIME
+        self.offers: List[Offer] = []
+        self.stats = Stats(move_interval=move_interval)
 
         self._move_timer = 0.0
         self._shoot_timer = 0.0
@@ -100,7 +90,7 @@ class Run:
 
     @property
     def time_to_next_move(self) -> float:
-        return self.move_interval - self._move_timer
+        return self.stats.move_interval - self._move_timer
 
     def steer(self, direction: Tuple[int, int]) -> None:
         if self.phase == "playing":
@@ -109,24 +99,11 @@ class Run:
     def pick_upgrade(self, key: str) -> None:
         if self.phase != "choosing_upgrade":
             raise ValueError(f"can't pick an upgrade while {self.phase}")
-        if key not in [u["key"] for u in self.offered_upgrades]:
+        if key not in [o.key for o in self.offers]:
             raise ValueError(f"upgrade {key!r} was not offered")
 
-        if key == "faster_fire":
-            self.shoot_interval = max(0.08, self.shoot_interval * 0.80)
-        elif key == "extra_heart":
-            self.snake.hp += 1
-        elif key == "big_bullet":
-            self.bullet_radius += 2
-            self.bullet_damage += 1
-        elif key == "thick_skin":
-            self.invuln_time += 0.30
-        elif key == "swift_snake":
-            self.move_interval = max(0.04, self.move_interval * 0.90)
-        elif key == "piercing_shot":
-            self.bullet_piercing += 1
-
-        self.offered_upgrades = []
+        self.stats, self.snake.hp = upgrades.apply(key, self.stats, self.snake.hp)
+        self.offers = []
         self._waves.advance()
         self.phase = "playing"
 
@@ -139,8 +116,8 @@ class Run:
         self._move_timer += dt
         self._shoot_timer += dt
 
-        if self._move_timer >= self.move_interval:
-            self._move_timer -= self.move_interval
+        if self._move_timer >= self.stats.move_interval:
+            self._move_timer -= self.stats.move_interval
             self.snake.move()
             if not self.snake.alive:
                 # End before anything else scores, so RunOver carries the final score.
@@ -157,12 +134,12 @@ class Run:
             self.enemies.append(enemy)
             events.append(EnemySpawned(pygame.Vector2(enemy.pos)))
         elif wave_complete:
-            self.offered_upgrades = roll_upgrades(rng=self.rng)
+            self.offers = upgrades.offers(self.stats, self.snake.hp, self.rng)
             self.phase = "choosing_upgrade"
             events.append(WaveCleared(self.wave))
 
-        if self._shoot_timer >= self.shoot_interval:
-            self._shoot_timer -= self.shoot_interval
+        if self._shoot_timer >= self.stats.shoot_interval:
+            self._shoot_timer -= self.stats.shoot_interval
             events += self._auto_shoot()
 
         head_pos = self.snake.head_center()
@@ -199,10 +176,10 @@ class Run:
         direction = delta.normalize()
         self.bullets.append(Bullet(
             pos=origin.copy(),
-            vel=direction * self.bullet_speed,
-            radius=self.bullet_radius,
-            damage=self.bullet_damage,
-            piercing=self.bullet_piercing,
+            vel=direction * self.stats.bullet_speed,
+            radius=self.stats.bullet_radius,
+            damage=self.stats.bullet_damage,
+            piercing=self.stats.bullet_piercing,
         ))
         return [Shot(origin, direction)]
 
@@ -236,7 +213,7 @@ class Run:
             combined = enemy.radius + PLAYER_COLLISION_RADIUS
             if (enemy.pos - head_pos).length_squared() <= combined * combined:
                 enemy.alive = False
-                self.snake.take_damage(ENEMY_TOUCH_DAMAGE, self.invuln_time)
+                self.snake.take_damage(ENEMY_TOUCH_DAMAGE, self.stats.invuln_time)
                 events.append(EnemyContact(pygame.Vector2(head_pos), pygame.Vector2(enemy.pos)))
                 if not self.snake.alive:
                     return events + self._end()

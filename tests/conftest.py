@@ -26,6 +26,6 @@ def game(tmp_path, monkeypatch):
     g = game_module.Game()
     g.sound_mgr.play = lambda name: None
     g._start_run()
-    g.run = Run(g.run.move_interval, rng=random.Random(0))  # seeded for repeatable tests
+    g.run = Run(g.run.stats.move_interval, rng=random.Random(0))  # seeded for repeatable tests
     yield g
     pygame.quit()

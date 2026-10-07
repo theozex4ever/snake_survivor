@@ -8,6 +8,7 @@ from constants import (
     SPEED_OPTIONS,
     UI_ACCENT, UI_PANEL_BG, UI_PANEL_BORDER, UI_SUBTEXT, HEART_COLOR,
 )
+from upgrades import Offer
 
 _PANEL_ALPHA = 210
 
@@ -203,8 +204,7 @@ def draw_upgrade_pick(
     big_font: pygame.font.Font,
     font: pygame.font.Font,
     small_font: pygame.font.Font,
-    offered_upgrades: List[dict],
-    run,
+    offers: List[Offer],
 ) -> List[pygame.Rect]:
     screen.blit(game_surface, (0, 0))
     _dim_overlay(screen, alpha=170)
@@ -216,13 +216,13 @@ def draw_upgrade_pick(
 
     card_w, card_h = 290, 240
     gap = 24
-    n = len(offered_upgrades)
+    n = len(offers)
     total_w = n * card_w + (n - 1) * gap
     start_x = cx - total_w // 2
     cy = SCREEN_HEIGHT // 2 + 20
 
     card_rects: List[pygame.Rect] = []
-    for i, upg in enumerate(offered_upgrades):
+    for i, offer in enumerate(offers):
         x = start_x + i * (card_w + gap)
         rect = pygame.Rect(x, cy - card_h // 2, card_w, card_h)
         card_rects.append(rect)
@@ -232,14 +232,16 @@ def draw_upgrade_pick(
         num_surf = big_font.render(str(i + 1), True, UI_ACCENT)
         screen.blit(num_surf, num_surf.get_rect(center=(rect.centerx, rect.top + 32)))
 
-        name_surf = font.render(upg["name"], True, TEXT_COLOR)
+        name_surf = font.render(offer.name, True, TEXT_COLOR)
         screen.blit(name_surf, name_surf.get_rect(center=(rect.centerx, rect.centery - 20)))
 
-        desc_surf = small_font.render(upg["desc"], True, UI_SUBTEXT)
+        desc_surf = small_font.render(offer.desc, True, UI_SUBTEXT)
         screen.blit(desc_surf, desc_surf.get_rect(center=(rect.centerx, rect.centery + 12)))
 
-        stat_surf = small_font.render(upg["stat"](run), True, SNAKE_HEAD_COLOR)
-        screen.blit(stat_surf, stat_surf.get_rect(center=(rect.centerx, rect.bottom - 32)))
+        # Preview lines stack upward from the bottom of the card.
+        for j, line in enumerate(reversed(offer.preview)):
+            stat_surf = small_font.render(line, True, SNAKE_HEAD_COLOR)
+            screen.blit(stat_surf, stat_surf.get_rect(center=(rect.centerx, rect.bottom - 32 - j * 22)))
 
     hint = small_font.render("1  /  2  /  3   or   click", True, UI_SUBTEXT)
     screen.blit(hint, hint.get_rect(center=(cx, cy + card_h // 2 + 28)))
